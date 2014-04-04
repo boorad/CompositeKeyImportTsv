@@ -17,18 +17,21 @@
  */
 package org.apache.hadoop.hbase.mapreduce;
 
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
+import java.io.IOException;
+import java.util.Collection;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.CompositeKeyImportTsv.TsvParser.BadTsvLineException;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Base64;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Counter;
-import org.apache.hadoop.conf.Configuration;
-
-import java.io.IOException;
+import org.apache.hadoop.mapreduce.Mapper;
 
 /**
  * Write table content out to files in hdfs.
@@ -36,6 +39,8 @@ import java.io.IOException;
 public class CompositeKeyTsvImporterMapper
 extends Mapper<LongWritable, Text, ImmutableBytesWritable, Put>
 {
+
+  protected static final Log LOG = LogFactory.getLog(CompositeKeyTsvImporterMapper.class);
 
   /** Timestamp for all inserted rows */
   private long ts;
@@ -130,11 +135,10 @@ extends Mapper<LongWritable, Text, ImmutableBytesWritable, Put>
       ImmutableBytesWritable rowKey = parsed.getRowKey();
       // Retrieve timestamp if exists
       ts = parsed.getTimestamp(ts);
-
+      Collection<Integer> rowkeyValues = parser.getRowKeyColumnsIndex().values();
       Put put = new Put(rowKey.copyBytes());
       for (int i = 0; i < parsed.getColumnCount(); i++) {
-        if (
-            parser.getRowKeyColumnsIndex().get(i) != null ||
+        if (rowkeyValues.contains(i) ||
             i == parser.getTimestampKeyColumnIndex()) {
           continue;
         }
@@ -150,9 +154,10 @@ extends Mapper<LongWritable, Text, ImmutableBytesWritable, Put>
       context.write(rowKey, put);
     } catch (CompositeKeyImportTsv.TsvParser.BadTsvLineException badLine) {
       if (skipBadLines) {
-        System.err.println(
+        LOG.error(
             "Bad line at offset: " + offset.get() + ":\n" +
             badLine.getMessage());
+        //badLine.printStackTrace();
         incrementBadLineCount(1);
         return;
       } else {
@@ -160,7 +165,7 @@ extends Mapper<LongWritable, Text, ImmutableBytesWritable, Put>
       }
     } catch (IllegalArgumentException e) {
       if (skipBadLines) {
-        System.err.println(
+        LOG.error(
             "Bad line at offset: " + offset.get() + ":\n" +
             e.getMessage());
         incrementBadLineCount(1);

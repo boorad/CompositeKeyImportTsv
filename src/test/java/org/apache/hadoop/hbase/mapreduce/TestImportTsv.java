@@ -313,9 +313,10 @@ public class TestImportTsv {
         HBaseAdmin admin = new HBaseAdmin(conf);
         admin.createTable(desc);
         admin.close();
-      } else { // set the hbaseAdmin as we are not going through main()
-        LOG.info("set the hbaseAdmin");
-        CompositeKeyImportTsv.createHbaseAdmin(conf);
+// TODO: finish https://github.com/apache/hbase/commit/28df7ffd20875a029d17a23e6351de2857e785da
+//      } else { // set the hbaseAdmin as we are not going through main()
+//        LOG.info("set the hbaseAdmin");
+//        CompositeKeyImportTsv.createHbaseAdmin(conf);
       }
       Job job = CompositeKeyImportTsv.createSubmittableJob(conf, args);
       job.waitForCompletion(false);

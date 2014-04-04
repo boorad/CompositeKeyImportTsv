@@ -68,7 +68,7 @@ import com.google.common.io.ByteStreams;
  */
 public class CompositeKeyImportTsv extends Configured implements Tool {
 
-  protected static final Log LOG = LogFactory.getLog(ImportTsv.class);
+  protected static final Log LOG = LogFactory.getLog(CompositeKeyImportTsv.class);
 
   final static String NAME = "importtsv";
 
@@ -123,6 +123,7 @@ public class CompositeKeyImportTsv extends Configured implements Tool {
         Splitter.on(',').trimResults().split(columnsSpecification));
 
       maxColumnCount = columnStrings.size();
+      LOG.info("maxcols: " + maxColumnCount);
       families = new byte[maxColumnCount][];
       qualifiers = new byte[maxColumnCount][];
 
@@ -135,10 +136,11 @@ public class CompositeKeyImportTsv extends Configured implements Tool {
           } else {
             int n = getRowKeyN(str);
             rowKeyColumnsIndex.put(n-1, i);
-            LOG.info("Composite row key - keypart: " + n + ", col index: " + i);
+            LOG.info("colindex: " + i + " rowkeypart: " + n);
           }
           continue;
         }
+
         if (TIMESTAMPKEY_COLUMN_SPEC.equals(str)) {
           timestampKeyColumnIndex = i;
           continue;
@@ -152,6 +154,8 @@ public class CompositeKeyImportTsv extends Configured implements Tool {
           families[i] = parts[0].getBytes();
           qualifiers[i] = parts[1].getBytes();
         }
+        LOG.info("colindex: " + i + " family: " + parts[0] + " qualifier: " +
+            (parts.length == 1 ? "" : parts[1]));
       }
     }
 
